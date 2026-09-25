@@ -39,7 +39,7 @@
         const targetUrl = document.getElementById('url').value;
         
         // ⚠️ 以下の「あなたの独自ドメイン」を実際のCloudflareドメインに書き換えてください
-        const proxyBaseUrl = 'https://proxy-wr.onrender.com/proxy?url=';
+        const proxyBaseUrl = 'https://proxy-wr.onrender.com/proxy/';
         const finalProxyUrl = proxyBaseUrl + encodeURIComponent(targetUrl);
         
         // 2. 💡 window.open を使って、アドレスバーやツールバーのない「独立したウィンドウ」として起動
