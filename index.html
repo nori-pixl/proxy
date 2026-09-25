@@ -10,8 +10,6 @@
         input[type="text"] { width: 70%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
         button { padding: 12px 24px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold; }
         button:hover { background: #0056b3; }
-        
-        /* 🔄 プログレス（ローディング）アニメーション */
         .progress-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 242, 245, 0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
         .progress-text { margin-top: 20px; font-size: 18px; font-weight: bold; color: #555; }
@@ -19,8 +17,6 @@
     </style>
 </head>
 <body>
-
-    <!-- メインの入力画面 -->
     <div class="box" id="mainBox">
         <h2>Web Proxy Portal</h2>
         <form onsubmit="showProgress(event);">
@@ -28,30 +24,45 @@
             <button type="submit">Go</button>
         </form>
     </div>
-
-    <!-- 進捗（Progress）ローディング画面 -->
     <div class="progress-container" id="progressOverlay">
         <div class="spinner"></div>
         <div class="progress-text">Server Processing...</div>
     </div>
-
     <script>
-        function showProgress(event) {
-            event.preventDefault();
-            
-            // 画面を暗転させてプログレスバーを起動
-            document.getElementById('mainBox').style.opacity = '0.3';
-            document.getElementById('progressOverlay').style.display = 'flex';
-            
-            const targetUrl = document.getElementById('url').value;
-            
-            // 💡 ここでRenderの環境変数（JavaScriptが自動読み込みする仕組みなど）または固定値を指定します
-            // ⚠️ あなたのCloudflareドメイン（例: ://yourdomain.com）に書き換えてください
-            const proxyBaseUrl = 'https://proxy-wr.onrender.com/proxy?url=';
-            
-            // 読み書き担当のTermuxサーバー（バックエンド）へリクエストを飛ばす
-            window.location.href = proxyBaseUrl + encodeURIComponent(targetUrl);
-        }
-    </script>
+    function showProgress(event) {
+        event.preventDefault();
+        
+        // 1. フロント画面（Render）側を暗転させてプログレスバーを出す
+        document.getElementById('mainBox').style.opacity = '0.3';
+        document.getElementById('progressOverlay').style.display = 'flex';
+        
+        const targetUrl = document.getElementById('url').value;
+        
+        // ⚠️ 以下の「あなたの独自ドメイン」を実際のCloudflareドメインに書き換えてください
+        const proxyBaseUrl = 'https://あなたの独自ドメイン/proxy?url=';
+        const finalProxyUrl = proxyBaseUrl + encodeURIComponent(targetUrl);
+        
+        // 2. 💡 window.open を使って、アドレスバーやツールバーのない「独立したウィンドウ」として起動
+        // 画面サイズは横1200px、縦800px（画面中央付近に配置されます）
+        const winWidth = 1200;
+        const winHeight = 800;
+        const left = (screen.width - winWidth) / 2;
+        const top = (screen.height - winHeight) / 2;
+        
+        window.open(
+            finalProxyUrl, 
+            '_blank', 
+            `width=${winWidth},height=${winHeight},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
+        );
+        
+        // 3. 数秒後にフロント側のプログレス（暗転）を元の状態へ自動で戻す（次の検索のため）
+        setTimeout(() => {
+            document.getElementById('mainBox').style.opacity = '1';
+            document.getElementById('progressOverlay').style.display = 'none';
+            document.getElementById('url').value = '';
+        }, 3000);
+    }
+</script>
+
 </body>
 </html>
