@@ -36,13 +36,12 @@
             
             let targetUrl = document.getElementById('url').value.trim();
             
-            // http:// も https:// も入力されていない場合は自動補完
             if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
                 targetUrl = 'https://' + targetUrl;
             }
             
-            // 💡 修正箇所： encodeURIComponent を使わず、生のURL文字列のまま結合させます
-            window.location.href = window.location.origin + 'proxy-wr.onrender.com/proxy/' + targetUrl;
+            // 💡 あなたの指摘通り、省略せず、エンコード（文字化け）もせず、Renderのフルドメインを完全に指定して結合します！
+            window.location.href = 'https://proxy-wr.onrender.com' + targetUrl;
         }
     </script>
 </body>
