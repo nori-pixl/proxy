@@ -10,6 +10,8 @@
         input[type="text"] { width: 70%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
         button { padding: 12px 24px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold; }
         button:hover { background: #0056b3; }
+        
+        /* 🔄 プログレス（ローディング）画面のスタイル */
         .progress-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 242, 245, 0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
         .progress-text { margin-top: 20px; font-size: 18px; font-weight: bold; color: #555; }
@@ -17,10 +19,11 @@
     </style>
 </head>
 <body>
+
     <div class="box" id="mainBox">
         <h2>Web Proxy Portal</h2>
-        <form onsubmit="showProgress(event);">
-            <input type="text" id="url" placeholder="https://example.com" required>
+        <form onsubmit="goProxy(event);">
+            <input type="text" id="targetUrl" placeholder="https://example.com" required>
             <button type="submit">Go</button>
         </form>
     </div>
@@ -32,28 +35,30 @@
     </div>
 
     <script>
-        function showProgress(event) {
+        // 💡 Render Static Sitesの環境変数置換仕様をそのまま利用
+        // ダッシュボードで設定され、Termuxから自動書き込みされたURLがここに直接展開されます
+        const termuxBackendUrl = '%TERMUX_URL%';
+
+        function goProxy(event) {
             event.preventDefault();
+            
+            // 環境変数が読み込めていない、または置換前の文字列のままの場合のガード
+            if (!termuxBackendUrl || termuxBackendUrl.startsWith('%')) {
+                alert('エラー: バックエンドURL(TERMUX_URL)がまだRender側に同期されていません。Termux側のサーバーを起動してください。');
+                return;
+            }
+
+            // ボタンが押されたら即座に進捗（Progress）アニメーションを表示
             document.getElementById('mainBox').style.opacity = '0.3';
             document.getElementById('progressOverlay').style.display = 'flex';
             
-            let targetUrl = document.getElementById('url').value.trim();
-            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-                targetUrl = 'https://' + targetUrl;
+            let url = document.getElementById('targetUrl').value.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
             }
-            
-            // 💡 Renderの環境変数（TERMUX_URL）に設定した文字がここに直接埋め込まれます
-            const termuxBackendUrl = '%TERMUX_URL%'; 
-            
-            if (!termuxBackendUrl || termuxBackendUrl.startsWith('%')) {
-                alert('エラー: Renderダッシュボードで TERMUX_URL が設定されていないか、読み込めていません。');
-                document.getElementById('mainBox').style.opacity = '1';
-                document.getElementById('progressOverlay').style.display = 'none';
-                return;
-            }
-            
-            // 文字化けのない生のURL結合で、直接Termux（バックエンド）へ直撃
-            window.location.href = termuxBackendUrl + '/proxy?url=' + encodeURIComponent(targetUrl);
+
+            // 💡 文字化け(%3A%2F%2F)を起こさない、生のURL結合でUnblocker仕様（/proxy/URL）に直撃
+            window.location.href = termuxBackendUrl + '/proxy/' + url;
         }
     </script>
 </body>
