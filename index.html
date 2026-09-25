@@ -5,20 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Proxy Portal</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f0f2f5; }
-        .box { max-width: 500px; margin: 0 auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input[type="text"] { width: 70%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+        body { font-family: sans-serif; text-align: center; padding-top: 60px; background: #f0f2f5; color: #333; margin: 0; }
+        .box { max-width: 500px; margin: 0 auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.3s; }
+        input[type="text"] { width: 70%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
         button { padding: 12px 24px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        
+        /* 🔄 プログレス（ローディング）アニメーション */
+        .progress-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 242, 245, 0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
+        .progress-text { margin-top: 20px; font-size: 18px; font-weight: bold; color: #555; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>Web Proxy By nori-pixl</h2>
-        <!-- ⚠️「あなたの独自ドメイン」の部分をご自身のドメイン（例: ://yourdomain.com）に書き換えてください -->
-        <form onsubmit="event.preventDefault(); window.location.href='https://proxy-wreo.onrender.com/proxy?url=' + encodeURIComponent(document.getElementById('url').value);">
+
+    <!-- メインの入力画面 -->
+    <div class="box" id="mainBox">
+        <h2>Web Proxy Portal</h2>
+        <form onsubmit="showProgress(event);">
             <input type="text" id="url" placeholder="https://example.com" required>
             <button type="submit">Go</button>
         </form>
     </div>
+
+    <!-- 進捗（Progress）ローディング画面 -->
+    <div class="progress-container" id="progressOverlay">
+        <div class="spinner"></div>
+        <div class="progress-text">Server Processing...</div>
+    </div>
+
+    <script>
+        function showProgress(event) {
+            event.preventDefault();
+            
+            // 画面を暗転させてプログレスバーを起動
+            document.getElementById('mainBox').style.opacity = '0.3';
+            document.getElementById('progressOverlay').style.display = 'flex';
+            
+            const targetUrl = document.getElementById('url').value;
+            
+            // 💡 ここでRenderの環境変数（JavaScriptが自動読み込みする仕組みなど）または固定値を指定します
+            // ⚠️ あなたのCloudflareドメイン（例: ://yourdomain.com）に書き換えてください
+            const proxyBaseUrl = 'https://proxy-wr.onrender.com/proxy?url=';
+            
+            // 読み書き担当のTermuxサーバー（バックエンド）へリクエストを飛ばす
+            window.location.href = proxyBaseUrl + encodeURIComponent(targetUrl);
+        }
+    </script>
 </body>
 </html>
