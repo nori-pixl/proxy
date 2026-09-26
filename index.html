@@ -3,45 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Proxy Portal</title>
+    <title>Remote Browser Portal</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 60px; background: #f0f2f5; color: #333; margin: 0; }
-        .box { max-width: 500px; margin: 0 auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.3s; }
-        input[type="text"] { width: 70%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; outline: none; }
-        button { padding: 12px 24px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        .progress-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 242, 245, 0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #ddd; border-top: 5px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
-        .progress-text { margin-top: 20px; font-size: 18px; font-weight: bold; color: #555; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: sans-serif; text-align: center; background: #222; color: #fff; margin: 0; padding: 20px; }
+        .control-panel { margin-bottom: 15px; }
+        input[type="text"] { width: 50%; padding: 10px; font-size: 16px; border-radius: 4px; border: none; }
+        button { padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        /* 💡 配信画像を表示するエリア */
+        .viewer-container { max-width: 1280px; margin: 0 auto; overflow: auto; border: 2px solid #444; background: #000; position: relative; }
+        #screenView { width: 100%; height: auto; display: block; cursor: crosshair; }
+        .loading-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; font-size: 24px; }
     </style>
 </head>
 <body>
-    <div class="box" id="mainBox">
-        <h2>Web Proxy Portal</h2>
-        <form onsubmit="showProgress(event);">
-            <input type="text" id="url" placeholder="https://example.com" required>
-            <button type="submit">Go</button>
-        </form>
+
+    <div class="control-panel">
+        <input type="text" id="urlInput" placeholder="https://youtube.com" value="https://youtube.com">
+        <button onclick="navigateUrl();">接続</button>
     </div>
-    <div class="progress-container" id="progressOverlay">
-        <div class="spinner"></div>
-        <div class="progress-text">Server Processing...</div>
+
+    <div class="viewer-container">
+        <!-- 💡 Termuxから送られてきたブラウザ画像をここに表示 -->
+        <img id="screenView" src="" alt="リモート画面がここに表示されます" onclick="sendClick(event);">
+        <div class="loading-overlay" id="loading">読み書き中...</div>
     </div>
+
     <script>
-        function showProgress(event) {
-            event.preventDefault();
-            document.getElementById('mainBox').style.opacity = '0.3';
-            document.getElementById('progressOverlay').style.display = 'flex';
-            
-            let targetUrl = document.getElementById('url').value.trim();
-            
-            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-                targetUrl = 'https://' + targetUrl;
+        const screenView = document.getElementById('screenView');
+        const loading = document.getElementById('loading');
+
+        function toggleLoading(show) {
+            loading.style.display = show ? 'flex' : 'none';
+        }
+
+        // 💡 URL送信処理
+        async function navigateUrl() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return;
+            toggleLoading(true);
+
+            try {
+                const res = await fetch('/api/navigate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const blob = await res.blob();
+                screenView.src = URL.createObjectURL(blob); // 画像を画面に上書き
+            } catch (err) {
+                alert('通信に失敗しました。');
+            } finally {
+                toggleLoading(false);
             }
-            
-            // 💡 あなたの指摘通り、省略せず、エンコード（文字化け）もせず、Renderのフルドメインを完全に指定して結合します！
-            window.location.href = 'https://proxy-wr.onrender.com/proxy/' + targetUrl;
+        }
+
+        // 💡 画面上のクリックされた座標を計算してTermuxへ中継送信
+        async function sendClick(event) {
+            toggleLoading(true);
+
+            // 表示サイズと、裏で動く本物のブラウザサイズ(1280x800)の比率を計算
+            const rect = screenView.getBoundingClientRect();
+            const scaleX = 1280 / rect.width;
+            const scaleY = 800 / rect.height;
+
+            const clickX = Math.round((event.clientX - rect.left) * scaleX);
+            const clickY = Math.round((event.clientY - rect.top) * scaleY);
+
+            try {
+                const res = await fetch('/api/click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x: clickX, y: clickY })
+                });
+                const blob = await res.blob();
+                screenView.src = URL.createObjectURL(blob); // クリック後の最新画像に差し替え
+            } catch (err) {
+                console.error(err);
+            } finally {
+                toggleLoading(false);
+            }
         }
     </script>
 </body>
